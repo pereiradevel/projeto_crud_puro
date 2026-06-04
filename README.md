@@ -1,1 +1,0 @@
-# projeto_crud_puro

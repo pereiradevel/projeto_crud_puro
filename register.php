@@ -1,89 +1,129 @@
 <?php
-require_once 'conexao.php';
+session_start();
+require_once 'db.php';
 
-$mensagem = "";
+// Se já estiver logado, redireciona diretamente para o Dashboard
+if (isset($_SESSION['usuario_id'])) {
+    header("Location: index.php");
+    exit;
+}
 
-// Verifica se o formulário de registro foi enviado
+$erro = '';
+$sucesso = '';
+
+// Processamento do Formulário de Registro
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user = $_POST['usuario'];
-    $email = $_POST['email'];
-    $senha = $_POST['senha'];
+    $nome = trim($_POST['nome'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $senha = $_POST['senha'] ?? '';
+    $confirmar_senha = $_POST['confirmar_senha'] ?? '';
 
-    // Insere os dados diretamente na tabela oficial de usuários
-    $stmt = $pdo->prepare("INSERT INTO usuarios (usuario, email, senha) VALUES (:usuario, :email, :senha)");
-    $stmt->bindValue(":usuario", $user);
-    $stmt->bindValue(":email", $email);
-    $stmt->bindValue(":senha", $senha);
-    
-    if ($stmt->execute()) {
-        // Alerta visual de sucesso e redireciona imediatamente para o login index.php
-        echo "<script>alert('Conta criada com sucesso!'); window.location.href='index.php';</script>";
-        exit;
+    if (empty($nome) || empty($email) || empty($senha)) {
+        $erro = 'Por favor, preencha todos os campos obrigatórios.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $erro = 'Formato de e-mail inválido.';
+    } elseif (strlen($senha) < 6) {
+        $erro = 'A senha deve conter no mínimo 6 caracteres.';
+    } elseif ($senha !== $confirmar_senha) {
+        $erro = 'As senhas informadas não coincidem.';
     } else {
-        $mensagem = "<div class='fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-md text-sm z-50'>Erro ao cadastrar no banco de dados.</div>";
+        try {
+            // Verifica se o e-mail já existe
+            $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                $erro = 'Este e-mail já está cadastrado em nossa base.';
+            } else {
+                // Criptografa a senha de maneira altamente segura
+                $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+                
+                // Insere o novo usuário
+                $stmt_insert = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
+                $stmt_insert->execute([$nome, $email, $senha_hash]);
+                
+                $sucesso = 'Cadastro realizado com sucesso! Redirecionando para o login...';
+                // Define um redirecionamento automático simples via cabeçalho HTTP de recarregamento
+                header("refresh:2;url=login.php");
+            }
+        } catch (PDOException $e) {
+            $erro = 'Erro ao processar o cadastro: ' . $e->getMessage();
+        }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criar Conta SADE</title>
+    <title>Cadastro - Sistema Escolar</title>
+    <!-- Utilização do Tailwind CSS via CDN para estilização visual premium -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen font-sans">
-
-    <?php echo $mensagem; ?>
-
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-4">
+<body class="bg-slate-50 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
         
-        <div class="text-center mb-8">
-            <div class="bg-emerald-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <i class='bx bx-user-plus text-white text-3xl'></i>
-            </div>
-            <h1 class="text-2xl font-bold text-slate-800">Criar Conta - SADE</h1>
-            <p class="text-sm text-slate-400 mt-1">Preencha os dados para se cadastrar</p>
+        <div class="p-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-center text-white">
+            <h1 class="text-2xl font-bold">Criar Nova Conta</h1>
+            <p class="text-blue-100 mt-2 text-sm">Registre-se no sistema</p>
         </div>
 
-        <form action="" method="POST" class="space-y-5">
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Usuário</label>
-                <div class="relative flex items-center">
-                    <i class='bx bx-user text-xl text-slate-400 absolute left-4'></i>
-                    <input type="text" name="usuario" placeholder="Escolha um usuário" required
-                        class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-emerald-500">
+        <div class="p-8">
+            <!-- Alertas de Sucesso ou Erro -->
+            <?php if (!empty($erro)): ?>
+                <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-sm">
+                    <strong>Atenção:</strong> <?= htmlspecialchars($erro) ?>
                 </div>
-            </div>
+            <?php endif; ?>
 
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1.5">E-mail</label>
-                <div class="relative flex items-center">
-                    <i class='bx bx-envelope text-xl text-slate-400 absolute left-4'></i>
-                    <input type="email" name="email" placeholder="seu@email.com" required
-                        class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-emerald-500">
+            <?php if (!empty($sucesso)): ?>
+                <div class="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 rounded-r-lg text-sm">
+                    <strong>Sucesso:</strong> <?= htmlspecialchars($sucesso) ?>
                 </div>
-            </div>
+            <?php endif; ?>
 
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Senha</label>
-                <div class="relative flex items-center">
-                    <i class='bx bx-lock-alt text-xl text-slate-400 absolute left-4'></i>
-                    <input type="password" name="senha" placeholder="Crie uma senha" required
-                        class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-emerald-500">
+            <form action="register.php" method="POST" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1" for="nome">Nome Completo</label>
+                    <input type="text" id="nome" name="nome" required 
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" 
+                           placeholder="Ex: João da Silva" value="<?= htmlspecialchars($_POST['nome'] ?? '') ?>">
                 </div>
-            </div>
 
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                <span>Cadastrar</span>
-                <i class='bx bx-check text-xl'></i>
-            </button>
-            
-            <div class="text-center mt-4">
-                <a href="index.php" class="text-xs font-semibold text-slate-400 hover:text-slate-600">Já tem conta? Voltar para o Login</a>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1" for="email">Endereço de E-mail</label>
+                    <input type="email" id="email" name="email" required 
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" 
+                           placeholder="exemplo@email.com" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1" for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" required 
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" 
+                           placeholder="No mínimo 6 caracteres">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1" for="confirmar_senha">Confirmar Senha</label>
+                    <input type="password" id="confirmar_senha" name="confirmar_senha" required 
+                           class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" 
+                           placeholder="Confirme a sua senha">
+                </div>
+
+                <button type="submit" 
+                        class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200">
+                    Cadastrar e Entrar
+                </button>
+            </form>
+
+            <div class="mt-8 text-center border-t border-slate-100 pt-6">
+                <p class="text-sm text-slate-600">
+                    Já possui uma conta? 
+                    <a href="login.php" class="text-blue-600 hover:underline font-semibold ml-1">Fazer Login</a>
+                </p>
             </div>
-        </form>
+        </div>
     </div>
 </body>
 </html>
