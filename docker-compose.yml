@@ -1,0 +1,35 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: sade_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: sistema_sade
+      MYSQL_USER: sade_user
+      MYSQL_PASSWORD: sade_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sistema_sade.sql:/docker-entrypoint-initdb.d/dump.sql
+
+  web:
+    build: .
+    container_name: sade_web
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html/
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: sistema_sade
+      DB_USER: sade_user
+      DB_PASSWORD: sade_password
+    depends_on:
+      - db
+
+volumes:
+  db_data:
