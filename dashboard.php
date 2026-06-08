@@ -73,7 +73,7 @@ require 'total.php';
                 
                 <div class="flex items-center space-x-3">
                     <div class="text-right hidden sm:block">
-                        <p class="text-sm font-semibold text-slate-900">Administrador</p>
+                        <p class="text-sm font-semibold text-slate-900"><?php echo 'Olá, ' . $_SESSION['usuario']; ?></p>
                         <p class="text-xs text-slate-400">Gestão Geral</p>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-100">

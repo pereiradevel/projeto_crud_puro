@@ -1,4 +1,5 @@
 <?php
+require_once '../verifica.php';
 require '../conexao.php';
 
 $mensagem = '';
