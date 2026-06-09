@@ -1,7 +1,6 @@
 <?php
 session_start();
 
-// Encerra a sessão atual e redireciona para a página de login.
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {
     $params = session_get_cookie_params();

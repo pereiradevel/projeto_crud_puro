@@ -20,6 +20,9 @@ if (!$aluno) {
     exit;
 }
 
+$stmt_turmas = $pdo->query("SELECT id, nome_turma, turno FROM turmas ORDER BY nome_turma ASC");
+$turmas = $stmt_turmas->fetchAll(PDO::FETCH_ASSOC);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $matricula = trim($_POST['matricula']);
     $nome_aluno = trim($_POST['nome_aluno']);
@@ -101,14 +104,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div>
-                    <label for="turma_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">ID da Turma</label>
+                    <label for="turma_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Turma</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
                             <i class='bx bx-group text-xl'></i>
                         </span>
-                        <input type="number" id="turma_id" name="turma_id" required 
-                            value="<?php echo $turma['turma_id']; ?>"
-                            class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-sm text-slate-900">
+                        <select id="turma_id" name="turma_id" required 
+                            class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-sm text-slate-900 appearance-none">
+                            <option value="">Selecione uma turma</option>
+                            <?php foreach ($turmas as $turma): ?>
+                                <option value="<?php echo $turma['id']; ?>" <?php echo ($turma['id'] == $aluno['turma_id']) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($turma['nome_turma'] . ' (' . $turma['turno'] . ')'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
 
